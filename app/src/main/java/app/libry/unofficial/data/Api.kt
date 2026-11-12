@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -125,6 +126,13 @@ class Api(val prefs: Prefs) {
     private suspend inline fun <reified T> get(path: String, query: List<Pair<String, String>> = emptyList()): T =
         AppJson.decodeFromString(raw("GET", path, query))
 
+    /** Список: сервер может вернуть и [ ... ], и { "data": [ ... ] }. */
+    private suspend inline fun <reified T> getList(path: String, query: List<Pair<String, String>> = emptyList()): List<T> {
+        val el = AppJson.parseToJsonElement(raw("GET", path, query))
+        val arr = if (el is JsonObject) (el["data"] ?: JsonArray(emptyList())) else el
+        return AppJson.decodeFromJsonElement<List<T>>(arr)
+    }
+
     private suspend inline fun <reified T> send(method: String, path: String, body: JsonElement?, query: List<Pair<String, String>> = emptyList()): T =
         AppJson.decodeFromString(raw(method, path, query, body))
 
@@ -190,10 +198,10 @@ class Api(val prefs: Prefs) {
 
     // ======================= Мои коллекции =======================
 
-    suspend fun collectionRefAgeRatings(): List<RefItem> = get("/accounts/users/me/collections/references/age-ratings")
-    suspend fun collectionRefGenres(): List<RefItem> = get("/accounts/users/me/collections/references/genres")
-    suspend fun collectionRefTypes(): List<RefItem> = get("/accounts/users/me/collections/references/types")
-    suspend fun collectionRefYears(): List<Int> = get("/accounts/users/me/collections/references/years")
+    suspend fun collectionRefAgeRatings(): List<RefItem> = getList("/accounts/users/me/collections/references/age-ratings")
+    suspend fun collectionRefGenres(): List<RefItem> = getList("/accounts/users/me/collections/references/genres")
+    suspend fun collectionRefTypes(): List<RefItem> = getList("/accounts/users/me/collections/references/types")
+    suspend fun collectionRefYears(): List<Int> = getList("/accounts/users/me/collections/references/years")
 
     /** releaseId -> тип коллекции. Формат ответа в документации неоднозначен, разбираем терпимо. */
     suspend fun collectionIds(): Map<Int, String> {
@@ -270,11 +278,11 @@ class Api(val prefs: Prefs) {
 
     // ======================= Моё избранное =======================
 
-    suspend fun favoriteRefAgeRatings(): List<RefItem> = get("/accounts/users/me/favorites/references/age-ratings")
-    suspend fun favoriteRefGenres(): List<RefItem> = get("/accounts/users/me/favorites/references/genres")
-    suspend fun favoriteRefSorting(): List<RefItem> = get("/accounts/users/me/favorites/references/sorting")
-    suspend fun favoriteRefTypes(): List<RefItem> = get("/accounts/users/me/favorites/references/types")
-    suspend fun favoriteRefYears(): List<Int> = get("/accounts/users/me/favorites/references/years")
+    suspend fun favoriteRefAgeRatings(): List<RefItem> = getList("/accounts/users/me/favorites/references/age-ratings")
+    suspend fun favoriteRefGenres(): List<RefItem> = getList("/accounts/users/me/favorites/references/genres")
+    suspend fun favoriteRefSorting(): List<RefItem> = getList("/accounts/users/me/favorites/references/sorting")
+    suspend fun favoriteRefTypes(): List<RefItem> = getList("/accounts/users/me/favorites/references/types")
+    suspend fun favoriteRefYears(): List<Int> = getList("/accounts/users/me/favorites/references/years")
 
     suspend fun favoriteIds(): List<Int> {
         val el = AppJson.parseToJsonElement(raw("GET", "/accounts/users/me/favorites/ids"))
@@ -368,7 +376,7 @@ class Api(val prefs: Prefs) {
 
     // ======================= Реклама (VAST) =======================
 
-    suspend fun vasts(): List<Vast> = get("/media/vasts")
+    suspend fun vasts(): List<Vast> = getList("/media/vasts")
 
     suspend fun vastManifestXml(): String = raw("GET", "/media/manifest.xml")
 
@@ -485,39 +493,39 @@ class Api(val prefs: Prefs) {
     suspend fun catalogReleases(page: Int, f: CatalogFilter = CatalogFilter()): Paged<Release> =
         if (prefs.usePost) catalogReleasesPost(page, 24, f) else catalogReleasesGet(page, 24, f)
 
-    suspend fun catalogRefAgeRatings(): List<RefItem> = get("/anime/catalog/references/age-ratings")
-    suspend fun catalogRefGenres(): List<RefItem> = get("/anime/catalog/references/genres")
-    suspend fun catalogRefProductionStatuses(): List<RefItem> = get("/anime/catalog/references/production-statuses")
-    suspend fun catalogRefPublishStatuses(): List<RefItem> = get("/anime/catalog/references/publish-statuses")
-    suspend fun catalogRefSeasons(): List<RefItem> = get("/anime/catalog/references/seasons")
-    suspend fun catalogRefSorting(): List<RefItem> = get("/anime/catalog/references/sorting")
-    suspend fun catalogRefTypes(): List<RefItem> = get("/anime/catalog/references/types")
-    suspend fun catalogRefYears(): List<Int> = get("/anime/catalog/references/years")
+    suspend fun catalogRefAgeRatings(): List<RefItem> = getList("/anime/catalog/references/age-ratings")
+    suspend fun catalogRefGenres(): List<RefItem> = getList("/anime/catalog/references/genres")
+    suspend fun catalogRefProductionStatuses(): List<RefItem> = getList("/anime/catalog/references/production-statuses")
+    suspend fun catalogRefPublishStatuses(): List<RefItem> = getList("/anime/catalog/references/publish-statuses")
+    suspend fun catalogRefSeasons(): List<RefItem> = getList("/anime/catalog/references/seasons")
+    suspend fun catalogRefSorting(): List<RefItem> = getList("/anime/catalog/references/sorting")
+    suspend fun catalogRefTypes(): List<RefItem> = getList("/anime/catalog/references/types")
+    suspend fun catalogRefYears(): List<Int> = getList("/anime/catalog/references/years")
 
     // ======================= Франшизы =======================
 
-    suspend fun franchises(): List<Franchise> = get("/anime/franchises")
+    suspend fun franchises(): List<Franchise> = getList("/anime/franchises")
     suspend fun franchise(id: String): Franchise = get("/anime/franchises/$id")
-    suspend fun franchisesRandom(limit: Int = 10): List<Franchise> = get("/anime/franchises/random", q("limit" to limit))
-    suspend fun franchisesByRelease(releaseId: Int): List<Franchise> = get("/anime/franchises/release/$releaseId")
+    suspend fun franchisesRandom(limit: Int = 10): List<Franchise> = getList("/anime/franchises/random", q("limit" to limit))
+    suspend fun franchisesByRelease(releaseId: Int): List<Franchise> = getList("/anime/franchises/release/$releaseId")
 
     // ======================= Жанры =======================
 
-    suspend fun genres(): List<Genre> = get("/anime/genres")
+    suspend fun genres(): List<Genre> = getList("/anime/genres")
     suspend fun genre(id: Int): Genre = get("/anime/genres/$id")
-    suspend fun genresRandom(limit: Int = 10): List<Genre> = get("/anime/genres/random", q("limit" to limit))
+    suspend fun genresRandom(limit: Int = 10): List<Genre> = getList("/anime/genres/random", q("limit" to limit))
     suspend fun genreReleases(id: Int, page: Int, limit: Int = 24): Paged<Release> =
         get("/anime/genres/$id/releases", page(page, limit))
 
     // ======================= Релизы =======================
 
-    suspend fun releasesRandom(limit: Int = 12): List<Release> = get("/anime/releases/random", q("limit" to limit))
+    suspend fun releasesRandom(limit: Int = 12): List<Release> = getList("/anime/releases/random", q("limit" to limit))
 
     suspend fun releasesRecommended(releaseId: Int? = null, limit: Int = 12): List<Release> =
-        get("/anime/releases/recommended", q("limit" to limit, "release_id" to releaseId))
+        getList("/anime/releases/recommended", q("limit" to limit, "release_id" to releaseId))
 
     /** Без page — простой массив. */
-    suspend fun releasesLatest(limit: Int = 20): List<Release> = get("/anime/releases/latest", q("limit" to limit))
+    suspend fun releasesLatest(limit: Int = 20): List<Release> = getList("/anime/releases/latest", q("limit" to limit))
 
     /** С page — постраничный ответ (data + meta). */
     suspend fun releasesLatestPaged(page: Int, limit: Int = 24): Paged<Release> =
@@ -527,8 +535,8 @@ class Api(val prefs: Prefs) {
         get("/anime/releases/list", page(page, limit) + q("ids" to ids, "aliases" to aliases))
 
     suspend fun release(idOrAlias: String): Release = get("/anime/releases/$idOrAlias")
-    suspend fun releaseMembers(idOrAlias: String): List<Member> = get("/anime/releases/$idOrAlias/members")
-    suspend fun releaseEpisodesTimecodes(idOrAlias: String): List<View> = get("/anime/releases/$idOrAlias/episodes/timecodes")
+    suspend fun releaseMembers(idOrAlias: String): List<Member> = getList("/anime/releases/$idOrAlias/members")
+    suspend fun releaseEpisodesTimecodes(idOrAlias: String): List<View> = getList("/anime/releases/$idOrAlias/episodes/timecodes")
     suspend fun episode(id: String): Episode = get("/anime/releases/episodes/$id")
     suspend fun episodeTimecode(id: String): View = get("/anime/releases/episodes/$id/timecode")
 
@@ -540,13 +548,13 @@ class Api(val prefs: Prefs) {
     // ======================= Расписание =======================
 
     suspend fun scheduleNow(): ScheduleNow = get("/anime/schedule/now")
-    suspend fun scheduleWeek(): ScheduleWeek = get("/anime/schedule/week")
+    suspend fun scheduleWeek(): List<ScheduleItem> = getList("/anime/schedule/week")
 
     // ======================= Торренты =======================
 
     suspend fun torrents(page: Int, limit: Int = 24): Paged<Torrent> = get("/anime/torrents", page(page, limit))
     suspend fun torrent(hashOrId: String): Torrent = get("/anime/torrents/$hashOrId")
-    suspend fun torrentsByRelease(releaseId: Int): List<Torrent> = get("/anime/torrents/release/$releaseId")
+    suspend fun torrentsByRelease(releaseId: Int): List<Torrent> = getList("/anime/torrents/release/$releaseId")
 
     /** Ссылка на .torrent файл. pk — passkey пользователя (пусто — собственный, если авторизован). */
     fun torrentFileUrl(hashOrId: String, pk: String? = null): String =
@@ -587,15 +595,15 @@ class Api(val prefs: Prefs) {
 
     // ======================= Приложение / поиск / медиа / команда =======================
 
-    suspend fun searchReleases(query: String): List<Release> = get("/app/search/releases", q("query" to query))
+    suspend fun searchReleases(query: String): List<Release> = getList("/app/search/releases", q("query" to query))
     suspend fun status(): AppStatus = get("/app/status")
 
-    suspend fun promotions(): List<Promotion> = get<Promotions>("/media/promotions").data
+    suspend fun promotions(): List<Promotion> = getList("/media/promotions")
 
-    suspend fun videos(limit: Int = 12): List<Video> = get("/media/videos", q("limit" to limit))
+    suspend fun videos(limit: Int = 12): List<Video> = getList("/media/videos", q("limit" to limit))
     suspend fun videosPaged(page: Int, limit: Int = 24): Paged<Video> = get("/media/videos", page(page, limit))
 
-    suspend fun teams(): List<Team> = get("/teams/")
-    suspend fun teamRoles(): List<TeamRole> = get("/teams/roles")
-    suspend fun teamUsers(): List<TeamUser> = get("/teams/users")
+    suspend fun teams(): List<Team> = getList("/teams/")
+    suspend fun teamRoles(): List<TeamRole> = getList("/teams/roles")
+    suspend fun teamUsers(): List<TeamUser> = getList("/teams/users")
 }

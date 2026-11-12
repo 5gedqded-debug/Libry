@@ -19,6 +19,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -87,7 +88,7 @@ fun AppRoot() {
                                 }
                             },
                             icon = { Icon(t.icon, contentDescription = t.label) },
-                            label = { Text(t.label) },
+                            label = { Text(t.label, maxLines = 1, softWrap = false, fontSize = 11.sp) },
                         )
                     }
                 }

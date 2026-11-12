@@ -440,7 +440,7 @@ fun ScheduleScreen() {
             TextButton(onClick = { week = !week }) { Text(if (week) "Сегодня" else "Неделя") }
         },
     ) {
-        if (week) Load(key = "week", block = { api.scheduleWeek().data }) { items ->
+        if (week) Load(key = "week", block = { api.scheduleWeek() }) { items ->
             val byDay = items.groupBy { it.release?.publishDay.str?.toIntOrNull() ?: 0 }
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
                 for (d in 1..7) {
