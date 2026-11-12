@@ -443,7 +443,7 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
                                     onClick = {
                                         qualityMenu = false
                                         quality = q
-                                        api.prefs.setQuality(q)
+                                        api.prefs.updateQuality(q)
                                         val ep = current
                                         if (ep != null && !adMode) loadContent(ep, exo.currentPosition)
                                     },

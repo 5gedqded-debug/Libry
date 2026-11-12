@@ -391,31 +391,31 @@ fun SettingsScreen() {
     Screen("Настройки", onBack = { nav.popBackStack() }) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Тема", style = MaterialTheme.typography.titleSmall)
-            Radio("Системная", p.theme == 0) { p.setTheme(0) }
-            Radio("Светлая", p.theme == 1) { p.setTheme(1) }
-            Radio("Тёмная", p.theme == 2) { p.setTheme(2) }
+            Radio("Системная", p.theme == 0) { p.updateTheme(0) }
+            Radio("Светлая", p.theme == 1) { p.updateTheme(1) }
+            Radio("Тёмная", p.theme == 2) { p.updateTheme(2) }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Text("Качество по умолчанию", style = MaterialTheme.typography.titleSmall)
             Row {
                 listOf("1080", "720", "480").forEach { q ->
-                    Row(Modifier.clickable { p.setQuality(q) }, verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = p.quality == q, onClick = { p.setQuality(q) })
+                    Row(Modifier.clickable { p.updateQuality(q) }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = p.quality == q, onClick = { p.updateQuality(q) })
                         Text("${q}p", Modifier.padding(end = 12.dp))
                     }
                 }
             }
-            SwitchRow("Автопереход на следующую серию", null, p.autoNext) { p.setAutoNext(it) }
-            SwitchRow("Автопропуск опенинга", "Перематывает заставку, если известны её границы", p.autoSkip) { p.setAutoSkip(it) }
-            SwitchRow("Показывать рекламу (VAST)", "Короткий ролик перед первой серией. Список кампаний — в разделе «Реклама»", p.showAds) { p.setShowAds(it) }
-            SwitchRow("Фильтры списков через POST", "Использовать POST-варианты каталога, избранного и коллекций", p.usePost) { p.setUsePost(it) }
+            SwitchRow("Автопереход на следующую серию", null, p.autoNext) { p.updateAutoNext(it) }
+            SwitchRow("Автопропуск опенинга", "Перематывает заставку, если известны её границы", p.autoSkip) { p.updateAutoSkip(it) }
+            SwitchRow("Показывать рекламу (VAST)", "Короткий ролик перед первой серией. Список кампаний — в разделе «Реклама»", p.showAds) { p.updateShowAds(it) }
+            SwitchRow("Фильтры списков через POST", "Использовать POST-варианты каталога, избранного и коллекций", p.usePost) { p.updateUsePost(it) }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             Text("Адрес API", style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(base, { base = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Base URL") })
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { p.setBaseUrl(base); base = p.baseUrl; ctx.toast("Адрес сохранён") }) { Text("Сохранить") }
-                TextButton(onClick = { p.setBaseUrl(DEFAULT_BASE_URL); base = p.baseUrl }) { Text("По умолчанию") }
+                Button(onClick = { p.updateBaseUrl(base); base = p.baseUrl; ctx.toast("Адрес сохранён") }) { Text("Сохранить") }
+                TextButton(onClick = { p.updateBaseUrl(DEFAULT_BASE_URL); base = p.baseUrl }) { Text("По умолчанию") }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

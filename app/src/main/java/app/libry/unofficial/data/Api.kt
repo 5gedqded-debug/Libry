@@ -151,7 +151,7 @@ class Api(val prefs: Prefs) {
     suspend fun otpLogin(code: Int, deviceId: String = prefs.deviceId): String {
         val t: TokenResp = send("POST", "/accounts/otp/login", buildJsonObject { put("code", code); put("device_id", deviceId) })
         val token = t.token ?: throw ApiException(0, "Сервер не вернул токен")
-        prefs.setToken(token)
+        prefs.updateToken(token)
         return token
     }
 
@@ -160,7 +160,7 @@ class Api(val prefs: Prefs) {
     suspend fun login(login: String, password: String): String {
         val t: TokenResp = send("POST", "/accounts/users/auth/login", buildJsonObject { put("login", login); put("password", password) })
         val token = t.token ?: throw ApiException(0, "Сервер не вернул токен")
-        prefs.setToken(token)
+        prefs.updateToken(token)
         return token
     }
 
@@ -170,12 +170,12 @@ class Api(val prefs: Prefs) {
     suspend fun socialAuthenticate(state: String): String {
         val t: TokenResp = get("/accounts/users/auth/social/authenticate", q("state" to state))
         val token = t.token ?: throw ApiException(0, "Сервер не вернул токен")
-        prefs.setToken(token)
+        prefs.updateToken(token)
         return token
     }
 
     suspend fun logout() {
-        try { raw("POST", "/accounts/users/auth/logout") } finally { prefs.setToken(null) }
+        try { raw("POST", "/accounts/users/auth/logout") } finally { prefs.updateToken(null) }
     }
 
     suspend fun passwordForget(email: String) {

@@ -55,18 +55,18 @@ class Prefs(context: Context) {
             return m?.value ?: "https://aniliberty.top"
         }
 
-    fun setToken(v: String?) { token = v; sp.edit().putString("token", v).apply() }
-    fun setBaseUrl(v: String) {
+    fun updateToken(v: String?) { token = v; sp.edit().putString("token", v).apply() }
+    fun updateBaseUrl(v: String) {
         val t = v.trim().trimEnd('/').ifBlank { DEFAULT_BASE_URL }
         baseUrl = t; sp.edit().putString("base_url", t).apply()
     }
-    fun setTheme(v: Int) { theme = v; sp.edit().putInt("theme", v).apply() }
-    fun setQuality(v: String) { quality = v; sp.edit().putString("quality", v).apply() }
-    fun setAutoNext(v: Boolean) { autoNext = v; sp.edit().putBoolean("auto_next", v).apply() }
-    fun setAutoSkip(v: Boolean) { autoSkip = v; sp.edit().putBoolean("auto_skip", v).apply() }
-    fun setShowAds(v: Boolean) { showAds = v; sp.edit().putBoolean("show_ads", v).apply() }
-    fun setUsePost(v: Boolean) { usePost = v; sp.edit().putBoolean("use_post", v).apply() }
-    fun setHideAdult(v: Boolean) { hideAdult = v; sp.edit().putBoolean("hide_adult", v).apply() }
+    fun updateTheme(v: Int) { theme = v; sp.edit().putInt("theme", v).apply() }
+    fun updateQuality(v: String) { quality = v; sp.edit().putString("quality", v).apply() }
+    fun updateAutoNext(v: Boolean) { autoNext = v; sp.edit().putBoolean("auto_next", v).apply() }
+    fun updateAutoSkip(v: Boolean) { autoSkip = v; sp.edit().putBoolean("auto_skip", v).apply() }
+    fun updateShowAds(v: Boolean) { showAds = v; sp.edit().putBoolean("show_ads", v).apply() }
+    fun updateUsePost(v: Boolean) { usePost = v; sp.edit().putBoolean("use_post", v).apply() }
+    fun updateHideAdult(v: Boolean) { hideAdult = v; sp.edit().putBoolean("hide_adult", v).apply() }
 
     fun addSearch(q: String) {
         val t = q.trim()
