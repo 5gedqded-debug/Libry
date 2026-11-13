@@ -407,6 +407,7 @@ private fun ReleaseContent(rel: Release) {
             Load(key = "rec$rid", modifier = Modifier.fillMaxWidth().height(220.dp), block = { api.releasesRecommended(rid, 12) }) { ReleaseRow(it) }
         }
     }
+    }
 }
 
 private fun Modifier.matchParentSizeCompat(): Modifier = this.fillMaxWidth().height(190.dp)
@@ -463,7 +464,6 @@ private fun RatingBlock(rel: Release, requireLogin: () -> Boolean) {
                 catch (e: CancellationException) { throw e } catch (e: Exception) { ctx.toast(errText(e)) }
             }
         }) { Text("Снять оценку") }
-    }
     }
 }
 
