@@ -1,7 +1,20 @@
 package app.libry.unofficial.ui
 
 import android.net.Uri
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -10,8 +23,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,21 +86,41 @@ fun AppRoot() {
     CompositionLocalProvider(LocalNav provides nav) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                if (showBar) NavigationBar {
-                    TABS.forEach { t ->
-                        NavigationBarItem(
-                            selected = route == t.route,
-                            onClick = {
-                                nav.navigate(t.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                if (showBar) Box(
+                    Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer,
+                        shadowElevation = 10.dp, modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceAround) {
+                            TABS.forEach { t ->
+                                val sel = route == t.route
+                                Column(
+                                    Modifier.clip(RoundedCornerShape(20.dp))
+                                        .clickable {
+                                            nav.navigate(t.route) {
+                                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Icon(
+                                        t.icon, contentDescription = t.label,
+                                        tint = if (sel) Brand.Primary else Brand.Secondary,
+                                    )
+                                    Text(
+                                        t.label, maxLines = 1, softWrap = false, fontSize = 10.sp,
+                                        color = if (sel) Brand.Primary else Brand.Secondary,
+                                    )
                                 }
-                            },
-                            icon = { Icon(t.icon, contentDescription = t.label) },
-                            label = { Text(t.label, maxLines = 1, softWrap = false, fontSize = 11.sp) },
-                        )
+                            }
+                        }
                     }
                 }
             },

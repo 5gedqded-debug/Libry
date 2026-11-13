@@ -215,8 +215,12 @@ fun Screen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            androidx.compose.material3.CenterAlignedTopAppBar(
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                ),
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -240,7 +244,7 @@ fun Poster(url: String?, modifier: Modifier = Modifier) {
         model = url,
         contentDescription = null,
         contentScale = ContentScale.Crop,
-        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+        modifier = modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
     )
 }
 
@@ -270,10 +274,10 @@ fun ReleaseCard(r: Release, modifier: Modifier = Modifier, extra: String? = null
     val api = LocalApi.current
     Column(
         modifier.clickable { nav.navigate("release/${Uri.encode(r.id?.toString() ?: r.alias ?: "")}") },
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Poster(api.img(r.poster.best()), Modifier.fillMaxWidth().aspectRatio(2f / 3f))
-        Text(r.title(), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
+        Text(r.title(), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
         val sub = listOfNotNull(extra, r.subtitle().ifBlank { null }).joinToString(" • ")
         if (sub.isNotBlank()) Text(
             sub, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -285,20 +289,20 @@ fun ReleaseCard(r: Release, modifier: Modifier = Modifier, extra: String? = null
 /** Горизонтальная лента релизов. */
 @Composable
 fun ReleaseRow(items: List<Release>, extra: (Release) -> String? = { null }) {
-    LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(items.size) { i -> ReleaseCard(items[i], Modifier.width(118.dp), extra(items[i])) }
+    LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        items(items.size) { i -> ReleaseCard(items[i], Modifier.width(128.dp), extra(items[i])) }
     }
 }
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, action: String? = null, onAction: (() -> Unit)? = null) {
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text, style = MaterialTheme.typography.titleMedium)
-        if (action != null && onAction != null) TextButton(onClick = onAction) { Text(action) }
+        Text(text, style = MaterialTheme.typography.titleLarge)
+        if (action != null && onAction != null) TextButton(onClick = onAction) { Text(action, color = Brand.Primary) }
     }
 }
 
@@ -310,7 +314,16 @@ fun <T> ChipsRow(
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         options.forEach { (v, label) ->
-            FilterChip(selected = v in selected, onClick = { onToggle(v) }, label = { Text(label) })
+            FilterChip(
+                selected = v in selected, onClick = { onToggle(v) }, label = { Text(label) },
+                shape = RoundedCornerShape(50),
+                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    selectedContainerColor = Brand.Primary,
+                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
+                ),
+                border = null,
+            )
         }
     }
 }
@@ -346,11 +359,11 @@ fun InfoRow(label: String, value: String?) {
 @Composable
 fun Pill(text: String, modifier: Modifier = Modifier) {
     Surface(
-        modifier, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier, shape = RoundedCornerShape(50), color = Brand.Primary.copy(alpha = 0.14f),
     ) {
         Text(
             text, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer,
+            style = MaterialTheme.typography.labelMedium, color = Brand.Primary,
         )
     }
 }

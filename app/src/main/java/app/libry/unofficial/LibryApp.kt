@@ -16,6 +16,7 @@ class LibryApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        app.libry.unofficial.ui.LibryFonts.init(this)
         prefs = Prefs(this)
         api = Api(prefs)
     }
