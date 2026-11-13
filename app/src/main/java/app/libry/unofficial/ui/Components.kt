@@ -2,6 +2,9 @@
 
 package app.libry.unofficial.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -393,4 +396,60 @@ fun formatTime(sec: Long): String {
 
 fun shortDate(iso: String?): String? = iso?.take(10)?.takeIf { it.length == 10 }?.let {
     val p = it.split('-'); if (p.size == 3) "${p[2]}.${p[1]}.${p[0]}" else it
+}
+
+
+// ---------------- Карточки из макета ----------------
+
+private fun scoreText(r: Release): String? = r.rating?.average?.takeIf { it > 0 }?.let { String.format(java.util.Locale.US, "%.2f", it) }
+
+private fun epLabel(r: Release): String? =
+    r.latestEpisode?.ordinal?.let { "Серия " + (if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()) }
+        ?: r.episodesTotal?.let { "$it эп." }
+
+private fun Release.route() = "release/${Uri.encode(id?.toString() ?: alias ?: "")}"
+
+/** Карточка «Popular»: 134×183, номер в углу, название внизу. */
+@Composable
+fun PopularCard(r: Release, rank: Int) {
+    val nav = LocalNav.current
+    val api = LocalApi.current
+    Box(Modifier.width(134.dp).height(183.dp).clip(RoundedCornerShape(12.dp)).clickable { nav.navigate(r.route()) }) {
+        AsyncImage(api.img(r.poster.best()), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0x99000000)))))
+        Box(
+            Modifier.align(Alignment.TopStart).clip(RoundedCornerShape(topStart = 12.dp, bottomEnd = 12.dp)).background(Brand.Primary)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+        ) { Text("#$rank", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
+        Text(
+            r.title(), color = androidx.compose.ui.graphics.Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp,
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+        )
+    }
+}
+
+/** Карточка сетки: бейдж оценки сверху слева, «Серия N» внизу, название под постером по центру. */
+@Composable
+fun GridCard(r: Release, modifier: Modifier = Modifier) {
+    val nav = LocalNav.current
+    val api = LocalApi.current
+    Column(modifier.clickable { nav.navigate(r.route()) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(110f / 150f).clip(RoundedCornerShape(12.dp))) {
+            AsyncImage(api.img(r.poster.best()), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color(0x91000000)))))
+            scoreText(r)?.let {
+                Box(
+                    Modifier.align(Alignment.TopStart).clip(RoundedCornerShape(topStart = 12.dp, bottomEnd = 12.dp)).background(Brand.Primary)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) { Text(it, color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+            }
+            epLabel(r)?.let {
+                Text(
+                    it, color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 1,
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 8.dp),
+                )
+            }
+        }
+        Text(r.title(), fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+    }
 }

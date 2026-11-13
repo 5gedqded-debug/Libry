@@ -14,6 +14,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.ui.unit.sp
+import app.libry.unofficial.ui.Brand
+import app.libry.unofficial.ui.PopularCard
+import app.libry.unofficial.ui.GridCard
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -93,56 +102,94 @@ fun HomeScreen() {
     val ctx = LocalContext.current
     var randomKey by remember { mutableStateOf(0) }
 
-    Screen(
-        title = "Libry",
-        actions = {
-            IconButton(onClick = { nav.navigate("search") }) { Icon(Icons.Filled.Search, "Поиск") }
-        },
-    ) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
-            // Промо
+    Box(Modifier.fillMaxSize().statusBarsPadding()) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 120.dp)) {
+            // Шапка
             item {
-                Load(key = "promo", modifier = Modifier.fillMaxWidth().height(60.dp), block = { api.promotions() }) { list ->
-                    if (list.isNotEmpty()) LazyRow(
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+                var nick by remember { mutableStateOf<String?>(null) }
+                LaunchedEffect(api.isLoggedIn) {
+                    nick = if (api.isLoggedIn) try { api.profile().let { it.nickname ?: it.login } } catch (_: Exception) { null } else null
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text("Привет,", color = Color(0xFF838383), style = MaterialTheme.typography.bodyLarge, fontSize = 16.sp)
+                        Text(nick ?: "Libry", color = Brand.Primary, style = MaterialTheme.typography.headlineMedium)
+                    }
+                    IconButton(onClick = { nav.navigate(if (api.isLoggedIn) "history" else "login") }) {
+                        Icon(Icons.Filled.NotificationsNone, "Уведомления", tint = Brand.Secondary, modifier = Modifier.size(26.dp))
+                    }
+                }
+            }
+            // Популярное
+            item {
+                Text("Популярное", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 12.dp))
+                var page by remember { mutableStateOf(0) }
+                Load(key = "popular", modifier = Modifier.fillMaxWidth().height(183.dp), block = { api.releasesRecommended(null, 10) }) { list ->
+                    val st = androidx.compose.foundation.lazy.rememberLazyListState()
+                    LaunchedEffect(st.firstVisibleItemIndex) { page = st.firstVisibleItemIndex }
+                    LazyRow(state = st, contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(list.size) { i -> PopularCard(list[i], i + 1) }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
+                    repeat(4) { i ->
+                        Box(
+                            Modifier.padding(horizontal = 2.dp).height(8.dp).width(if (i == page.coerceIn(0, 3)) 16.dp else 8.dp)
+                                .clip(RoundedCornerShape(4.dp)).background(if (i == page.coerceIn(0, 3)) Brand.Primary else Color(0xFFD7D7D7)),
+                        )
+                    }
+                }
+            }
+            // Поиск
+            item {
+                Row(
+                    Modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer).clickable { nav.navigate("search") }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Какое аниме ищем?", color = Color(0xFF9B9B9B), style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.Filled.Search, "Поиск", tint = Brand.Secondary, modifier = Modifier.size(24.dp))
+                }
+            }
+            // Жанры
+            item {
+                Load(key = "gr", modifier = Modifier.fillMaxWidth().height(40.dp), block = { api.genresRandom(12) }) { list ->
+                    LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         items(list.size) { i ->
-                            val p = list[i]
-                            Card(
-                                Modifier.width(300.dp).clickable {
-                                    val rid = p.release?.id
-                                    if (rid != null) nav.navigate("release/$rid") else ctx.openUrl(p.url)
-                                },
-                            ) {
-                                Box {
-                                    AsyncImage(
-                                        model = api.img(p.image.best()), contentDescription = null,
-                                        contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(160.dp),
-                                    )
-                                    Column(
-                                        Modifier.fillMaxWidth().align(Alignment.BottomStart)
-                                            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000))))
-                                            .padding(10.dp),
-                                    ) {
-                                        Text(p.title.orEmpty(), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
-                                        if (!p.description.isNullOrBlank()) Text(p.description, color = Color(0xCCFFFFFF), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
-                                        if (p.isAd == true) Text(
-                                            "Реклама" + (p.adOrigin?.let { " • $it" } ?: "") + (p.adErid?.let { " • erid: $it" } ?: ""),
-                                            color = Color(0x99FFFFFF), style = MaterialTheme.typography.labelSmall,
-                                        )
-                                    }
-                                }
-                            }
+                            val g = list[i]
+                            Box(
+                                Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .clickable { g.id?.let { nav.navigate("genre/$it") } }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            ) { Text(g.name.orEmpty(), color = Brand.Secondary, style = MaterialTheme.typography.labelLarge, fontSize = 14.sp, maxLines = 1) }
                         }
                     }
                 }
             }
-            // Последние
+            // Новые релизы — сетка 3 в ряд
             item {
-                SectionTitle("Последние релизы", action = "Все", onAction = { nav.navigate("latest") })
-                Load(key = "latest", modifier = Modifier.fillMaxWidth().height(220.dp), block = { api.releasesLatest(20) }) { list ->
-                    ReleaseRow(list) { r -> r.latestEpisode?.title() }
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 20.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Новые релизы", style = MaterialTheme.typography.titleLarge)
+                    TextButton(onClick = { nav.navigate("latest") }) { Text("Все", color = Brand.Primary) }
+                }
+                Load(key = "latest", modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp), block = { api.releasesLatest(18) }) { list ->
+                    Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        list.chunked(3).forEach { row ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { r -> GridCard(r, Modifier.weight(1f)) }
+                                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
                 }
             }
             // Продолжить просмотр (если авторизован)
