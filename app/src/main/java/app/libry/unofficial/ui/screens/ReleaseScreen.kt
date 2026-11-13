@@ -2,6 +2,17 @@
 
 package app.libry.unofficial.ui.screens
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
+import app.libry.unofficial.ui.Brand
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -86,8 +97,13 @@ import kotlinx.coroutines.launch
 fun ReleaseScreen(idOrAlias: String) {
     val api = LocalApi.current
     val nav = LocalNav.current
-    Screen(title = "Релиз", onBack = { nav.popBackStack() }) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Load(key = idOrAlias, block = { api.release(idOrAlias) }) { rel -> ReleaseContent(rel) }
+        Box(
+            Modifier.statusBarsPadding().padding(12.dp).size(40.dp).clip(RoundedCornerShape(50))
+                .background(Color(0x33000000)).clickable { nav.popBackStack() },
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White) }
     }
 }
 
@@ -139,45 +155,85 @@ private fun ReleaseContent(rel: Release) {
 
     val next: Episode? = episodes.firstOrNull { e -> progress[e.id]?.watched != true } ?: episodes.firstOrNull()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+    Box(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 120.dp)) {
         // ---- шапка ----
         item {
-            Box {
-                val cover = rel.backgroundCovers?.firstOrNull().best()
-                if (cover != null) {
+            val genreLine = rel.genres.orEmpty().mapNotNull { it.name }.joinToString(", ")
+            Box(Modifier.fillMaxWidth()) {
+                Box(Modifier.fillMaxWidth().height(485.dp)) {
                     AsyncImage(
-                        model = api.img(cover), contentDescription = null, contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(190.dp),
+                        model = api.img(rel.poster.best()), contentDescription = null, contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
                     )
-                    Box(
-                        Modifier.matchParentSizeCompat().background(
-                            Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.background))
-                        )
-                    )
-                }
-                Row(
-                    Modifier.fillMaxWidth().padding(12.dp).padding(top = if (cover != null) 100.dp else 0.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Poster(api.img(rel.poster.best()), Modifier.width(124.dp).aspectRatio(2f / 3f))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(rel.title(), style = MaterialTheme.typography.titleLarge)
-                        rel.name?.english?.takeIf { it.isNotBlank() }?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        rel.name?.alternative?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            rel.type.str?.let { Pill(it) }
-                            rel.year?.let { Pill(it.toString()) }
-                            rel.season?.let { s -> (s.description ?: s.str)?.let { Pill(it) } }
-                            rel.ageRating?.let { a -> (a.label ?: a.str)?.let { Pill(it) } }
-                            rel.episodesTotal?.takeIf { it > 0 }?.let { Pill("$it эп.") }
-                            if (rel.isOngoing == true) Pill("Онгоинг")
-                            if (rel.isInProduction == true) Pill("В озвучке")
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xB3000000)))))
+                    Column(
+                        Modifier.align(Alignment.BottomStart).padding(start = 13.dp, end = 90.dp, bottom = 36.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(rel.title(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val tags = listOfNotNull(
+                                rel.type.str, rel.year?.toString(), rel.ageRating?.let { a -> a.label ?: a.str },
+                                rel.episodesTotal?.takeIf { it > 0 }?.let { "$it эп." },
+                                if (rel.isOngoing == true) "Онгоинг" else null,
+                            )
+                            tags.forEach { t ->
+                                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                    Text(t, color = Brand.Secondary, fontSize = 12.sp, maxLines = 1)
+                                }
+                            }
                         }
-                        val day = rel.publishDay.str?.toIntOrNull()
-                        if (day != null && day in 1..7) Text("Выходит: ${DAYS_RU[day - 1]}", style = MaterialTheme.typography.bodySmall)
-                        rel.averageDurationOfEpisode?.takeIf { it > 0 }?.let { Text("Серия ≈ $it мин", style = MaterialTheme.typography.bodySmall) }
+                        if (genreLine.isNotBlank()) Text(genreLine, color = Brand.Dust, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
+                Column(
+                    Modifier.fillMaxWidth().padding(top = 461.dp)
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(horizontal = 13.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("Описание", style = MaterialTheme.typography.titleLarge)
+                    rel.notification?.takeIf { it.isNotBlank() }?.let { Text(it, color = Brand.Primary, style = MaterialTheme.typography.bodyMedium) }
+                    if (rel.isBlockedByGeo == true) Text("Релиз заблокирован в вашем регионе", color = MaterialTheme.colorScheme.error)
+                    if (rel.isBlockedByCopyrights == true) Text("Релиз заблокирован по требованию правообладателя", color = MaterialTheme.colorScheme.error)
+                    rel.description?.takeIf { it.isNotBlank() }?.let { d ->
+                        var expanded by remember { mutableStateOf(false) }
+                        Text(
+                            buildAnnotatedString {
+                                append(if (expanded || d.length <= 150) d else d.take(150).trimEnd() + "… ")
+                                if (!expanded && d.length > 150) withStyle(SpanStyle(color = Brand.Primary)) { append("Читать далее") }
+                            },
+                            color = Brand.Secondary, style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.clickable { expanded = !expanded },
+                        )
+                    }
+                }
+                Column(
+                    Modifier.align(Alignment.TopEnd).padding(end = 13.dp, top = 431.dp).shadow(7.dp, RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp)).background(Brand.Primary).padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("Оценка", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        rel.rating?.average?.takeIf { it > 0 }?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "—",
+                        color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Box(
+                    Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp).size(40.dp).clip(RoundedCornerShape(50))
+                        .background(Color(0x33000000)).clickable {
+                            if (!requireLogin()) return@clickable
+                            scope.launch {
+                                try {
+                                    if (favorite) api.favoriteDelete(rid) else api.favoriteAdd(rid)
+                                    favorite = !favorite
+                                } catch (e: CancellationException) { throw e } catch (e: Exception) { ctx.toast(errText(e)) }
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Избранное", tint = if (favorite) Color(0xFFFF4D6D) else Color.White) }
             }
         }
 
@@ -245,32 +301,6 @@ private fun ReleaseContent(rel: Release) {
             }
         }
 
-        // ---- уведомление / блокировки ----
-        item {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                rel.notification?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
-                }
-                if (rel.isBlockedByGeo == true) Text("Релиз заблокирован в вашем регионе", color = MaterialTheme.colorScheme.error)
-                if (rel.isBlockedByCopyrights == true) Text("Релиз заблокирован по требованию правообладателя", color = MaterialTheme.colorScheme.error)
-                rel.description?.takeIf { it.isNotBlank() }?.let { d ->
-                    var expanded by remember { mutableStateOf(false) }
-                    Text(d, maxLines = if (expanded) Int.MAX_VALUE else 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { expanded = !expanded })
-                }
-            }
-        }
-
-        // ---- жанры ----
-        item {
-            val genres = rel.genres.orEmpty()
-            if (genres.isNotEmpty()) FlowRow(
-                Modifier.padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                genres.forEach { g -> Pill(g.name.orEmpty(), Modifier.clickable { g.id?.let { nav.navigate("genre/$it") } }) }
-            }
-        }
-
         // ---- рейтинг ----
         item { RatingBlock(rel) { requireLogin() } }
 
@@ -284,7 +314,7 @@ private fun ReleaseContent(rel: Release) {
         }
 
         // ---- эпизоды ----
-        item { SectionTitle("Эпизоды (${episodes.size})") }
+        item { Text("Список серий", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 13.dp, top = 8.dp, bottom = 12.dp)) }
         items(episodes.size) { i ->
             val e = episodes[i]
             EpisodeRow(rid, e, progress[e.id], onChanged = { tick++ })
@@ -434,6 +464,7 @@ private fun RatingBlock(rel: Release, requireLogin: () -> Boolean) {
             }
         }) { Text("Снять оценку") }
     }
+    }
 }
 
 @Composable
@@ -459,22 +490,28 @@ private fun EpisodeRow(releaseId: Int, e: Episode, tc: Tc?, onChanged: () -> Uni
     }
 
     Row(
-        Modifier.fillMaxWidth().clickable { nav.navigate("player/$releaseId/${Uri.encode(id)}") }.padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
+        Modifier.padding(horizontal = 13.dp, vertical = 7.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable { nav.navigate("player/$releaseId/${Uri.encode(id)}") }
+            .padding(horizontal = 12.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(132.dp).aspectRatio(16f / 9f)) {
-            Poster(api.img(e.preview.best()), Modifier.fillMaxSize())
-            if (frac > 0f) LinearProgressIndicator(progress = { frac }, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
+        Box(Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))) {
+            AsyncImage(api.img(e.preview.best()), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+            if (frac > 0f) LinearProgressIndicator(progress = { frac }, color = Brand.Primary, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
         }
-        Column(Modifier.weight(1f)) {
-            Text(e.title(), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(e.title(), maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
             val meta = listOfNotNull(
                 e.duration?.takeIf { it > 0 }?.let { "${(it / 60).toInt()} мин" },
-                if (e.opening?.start != null) "есть опенинг" else null,
+                if (tc?.watched == true) "просмотрено" else null,
             ).joinToString(" • ")
-            if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (meta.isNotBlank()) Text(meta, fontSize = 14.sp, color = Brand.Secondary)
         }
-        if (tc?.watched == true) Icon(Icons.Filled.CheckCircle, "Просмотрено", tint = MaterialTheme.colorScheme.primary)
+        Box(
+            Modifier.size(48.dp).border(2.dp, Brand.Primary, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Filled.PlayArrow, "Смотреть", tint = Brand.Primary, modifier = Modifier.size(26.dp)) }
         Box {
             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "Меню") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
