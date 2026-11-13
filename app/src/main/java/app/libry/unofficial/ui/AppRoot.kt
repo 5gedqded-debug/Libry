@@ -1,5 +1,6 @@
 package app.libry.unofficial.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.filled.PlayArrow
