@@ -2,6 +2,13 @@
 
 package app.libry.unofficial.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import app.libry.unofficial.ui.Brand
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -74,21 +81,28 @@ fun MoreScreen() {
         Item("Видео", "videos"), Item("Команда", "team"), Item("Реклама и партнёры", "ads"),
         Item("Статус сервера", "status"), Item("Настройки", "settings"),
     )
-    Screen("Ещё") {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Screen("Профиль") {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 110.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Row(
-                Modifier.fillMaxWidth().clickable { nav.navigate(if (api.isLoggedIn) "profile" else "login") }.padding(16.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Brand.Primary)
+                    .clickable { nav.navigate(if (api.isLoggedIn) "profile" else "login") }.padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(if (api.isLoggedIn) "Профиль" else "Войти в аккаунт", style = MaterialTheme.typography.titleMedium)
+                Text(if (api.isLoggedIn) "Мой профиль" else "Войти в аккаунт", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
             }
-            HorizontalDivider()
-            items.forEach { it ->
-                Text(
-                    it.title, style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.fillMaxWidth().clickable { nav.navigate(it.route) }.padding(16.dp),
-                )
-                HorizontalDivider()
+            val all = listOf(Item("Расписание", "schedule")) + items
+            all.forEach { it ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                        .clickable { nav.navigate(it.route) }.padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(it.title, style = MaterialTheme.typography.bodyLarge, fontSize = 16.sp)
+                    Text("›", color = Brand.Primary, fontSize = 22.sp)
+                }
             }
         }
     }

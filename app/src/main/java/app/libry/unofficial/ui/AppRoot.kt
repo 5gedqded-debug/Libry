@@ -28,11 +28,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -80,11 +79,10 @@ import app.libry.unofficial.ui.screens.VideosScreen
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab("home", "Главная", Icons.Filled.Home),
-    Tab("catalog", "Каталог", Icons.Filled.GridView),
-    Tab("schedule", "Расписание", Icons.Filled.CalendarMonth),
-    Tab("library", "Библиотека", Icons.Filled.VideoLibrary),
-    Tab("more", "Ещё", Icons.Filled.Menu),
+    Tab("home", "Главная", Icons.Outlined.Home),
+    Tab("catalog", "Каталог", Icons.Outlined.PlayCircleOutline),
+    Tab("library", "Избранное", Icons.Outlined.BookmarkBorder),
+    Tab("more", "Профиль", Icons.Outlined.PersonOutline),
 )
 
 @Composable
@@ -92,7 +90,7 @@ fun AppRoot() {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val showBar = TABS.any { it.route == route }
+    val showBar = TABS.any { it.route == route } || route == "schedule"
 
     var splash by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { delay(1300); splash = false }
@@ -130,7 +128,7 @@ fun AppRoot() {
                                         tint = if (sel) Brand.Primary else Brand.Secondary,
                                     )
                                     Text(
-                                        t.label, maxLines = 1, softWrap = false, fontSize = 10.sp,
+                                        t.label, maxLines = 1, softWrap = false, fontSize = 12.sp,
                                         color = if (sel) Brand.Primary else Brand.Secondary,
                                     )
                                 }
