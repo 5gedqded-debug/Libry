@@ -2,6 +2,27 @@
 
 package app.libry.unofficial.ui.screens
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import app.libry.unofficial.data.best
+import app.libry.unofficial.ui.Brand
+import app.libry.unofficial.ui.toast
+import app.libry.unofficial.ui.errText
+import coil.compose.AsyncImage
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -137,7 +158,9 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
     var showEpisodes by remember { mutableStateOf(false) }
     var qualityMenu by remember { mutableStateOf(false) }
     var speedMenu by remember { mutableStateOf(false) }
-    var landscape by remember { mutableStateOf(true) }
+    var fullscreen by remember { mutableStateOf(false) }
+    var favorite by remember { mutableStateOf(false) }
+    var reversed by remember { mutableStateOf(false) }
     var triedFallback by remember { mutableStateOf(false) }
 
     // -------- выбор потока --------
@@ -282,22 +305,34 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
-    // полноэкранный режим, ориентация, экран не гаснет
+    // экран не гаснет и сохранение прогресса при выходе
     DisposableEffect(Unit) {
-        val act = ctx.findActivity()
-        val window = act?.window
-        val ctrl = window?.let { WindowCompat.getInsetsController(it, view) }
-        ctrl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        ctrl?.hide(WindowInsetsCompat.Type.systemBars())
-        act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         view.keepScreenOn = true
         onDispose {
             saveCb.value()
             exo.release()
-            ctrl?.show(WindowInsetsCompat.Type.systemBars())
-            act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             view.keepScreenOn = false
         }
+    }
+    // полноэкранный режим: ландшафт без системных панелей
+    DisposableEffect(fullscreen) {
+        val act = ctx.findActivity()
+        val window = act?.window
+        val ctrl = window?.let { WindowCompat.getInsetsController(it, view) }
+        if (fullscreen) {
+            ctrl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            ctrl?.hide(WindowInsetsCompat.Type.systemBars())
+            act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+        onDispose {
+            ctrl?.show(WindowInsetsCompat.Type.systemBars())
+            act?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+    androidx.activity.compose.BackHandler(enabled = fullscreen) { fullscreen = false }
+    LaunchedEffect(rel.id, api.prefs.token) {
+        val rid = rel.id
+        favorite = if (rid != null && api.isLoggedIn) try { rid in api.favoriteIds() } catch (e: CancellationException) { throw e } catch (_: Exception) { false } else false
     }
 
     // запуск серии при смене episodeId
@@ -338,7 +373,7 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
     }
 
     // ============== UI ==============
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    val playerUi: @Composable (Modifier) -> Unit = { boxMod -> Box(boxMod.background(Color.Black)) {
         AndroidView(
             factory = { c -> PlayerView(c).apply { useController = false; player = exo } },
             modifier = Modifier.fillMaxSize(),
@@ -410,7 +445,7 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
         AnimatedVisibility(visible = showControls && !adMode, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().background(Color(0x66000000))) {
                 // верх
-                Row(
+                if (fullscreen) Row(
                     Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -454,8 +489,14 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
                     IconButton(onClick = { showEpisodes = true }) { Icon(Icons.Filled.VideoLibrary, "Серии", tint = Color.White) }
                 }
 
-                // центр
-                Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                // центр (портрет): оранжевая кнопка
+                if (!fullscreen) Box(
+                    Modifier.align(Alignment.Center).size(56.dp).clip(RoundedCornerShape(50)).background(Brand.Primary)
+                        .clickable { if (exo.isPlaying) exo.pause() else exo.play() },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Пауза/Играть", tint = Color.White, modifier = Modifier.size(30.dp)) }
+                // центр (полный экран)
+                if (fullscreen) Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { switchEpisode(episodes.getOrNull(index - 1)?.id) }, enabled = index > 0) {
                         Icon(Icons.Filled.SkipPrevious, "Предыдущая", tint = Color.White, modifier = Modifier.size(36.dp))
                     }
@@ -475,23 +516,113 @@ private fun PlayerContent(rel: Release, startEpisodeId: String) {
 
                 // низ
                 Row(
-                    Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = if (fullscreen) 16.dp else 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(formatTime((if (seeking) seekValue.toLong() else pos) / 1000), color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    IconButton(onClick = { if (exo.isPlaying) exo.pause() else exo.play() }) {
+                        Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = Color.White)
+                    }
                     Slider(
                         value = if (seeking) seekValue else pos.toFloat(),
                         onValueChange = { seeking = true; seekValue = it },
                         onValueChangeFinished = { exo.seekTo(seekValue.toLong()); pos = seekValue.toLong(); seeking = false },
                         valueRange = 0f..(if (dur > 0) dur.toFloat() else 1f),
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color(0xFF737373)),
+                        modifier = Modifier.weight(1f),
                     )
-                    Text(formatTime(dur / 1000), color = Color.White, style = MaterialTheme.typography.labelMedium)
-                    IconButton(onClick = {
-                        landscape = !landscape
-                        ctx.findActivity()?.requestedOrientation =
-                            if (landscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-                    }) { Icon(Icons.Filled.ScreenRotation, "Ориентация", tint = Color.White) }
+                    Text("-" + formatTime(((dur - (if (seeking) seekValue.toLong() else pos)).coerceAtLeast(0L)) / 1000), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    if (!fullscreen) {
+                        Box {
+                            IconButton(onClick = { qualityMenu = true }) { Icon(Icons.Filled.Settings, "Качество", tint = Color.White) }
+                            DropdownMenu(expanded = qualityMenu, onDismissRequest = { qualityMenu = false }) {
+                                listOf("1080", "720", "480").forEach { q ->
+                                    val avail = when (q) { "1080" -> current?.hls1080; "720" -> current?.hls720; else -> current?.hls480 }
+                                    if (!avail.isNullOrBlank()) DropdownMenuItem(
+                                        text = { Text("${q}p" + if (q == activeQuality) "  ✓" else "") },
+                                        onClick = {
+                                            qualityMenu = false
+                                            quality = q
+                                            api.prefs.updateQuality(q)
+                                            val ep = current
+                                            if (ep != null && !adMode) loadContent(ep, exo.currentPosition)
+                                        },
+                                    )
+                                }
+                                SPEEDS.forEach { sp -> DropdownMenuItem(text = { Text("Скорость ${sp}x" + if (sp == speed) "  ✓" else "") }, onClick = { speed = sp; exo.setPlaybackSpeed(sp); qualityMenu = false }) }
+                            }
+                        }
+                    }
+                    IconButton(onClick = { fullscreen = !fullscreen }) {
+                        Icon(if (fullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen, "Во весь экран", tint = Color.White)
+                    }
+                }
+            }
+        }
+    } }
+
+    if (fullscreen) playerUi(Modifier.fillMaxSize()) else Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Brand.Secondary) }
+            IconButton(onClick = {
+                val rid = rel.id ?: return@IconButton
+                if (!api.isLoggedIn) { ctx.toast("Войдите в аккаунт"); nav.navigate("login"); return@IconButton }
+                scope.launch {
+                    try { if (favorite) api.favoriteDelete(rid) else api.favoriteAdd(rid); favorite = !favorite }
+                    catch (e: CancellationException) { throw e } catch (e: Exception) { ctx.toast(errText(e)) }
+                }
+            }) { Icon(if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Избранное", tint = if (favorite) Color(0xFFFF4D6D) else Brand.Secondary) }
+        }
+        playerUi(Modifier.padding(horizontal = 13.dp).fillMaxWidth().aspectRatio(350f / 196f).clip(RoundedCornerShape(12.dp)))
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 13.dp, end = 13.dp, top = 16.dp, bottom = 24.dp)) {
+            item {
+                Text("${rel.title()} — ${current?.title().orEmpty()}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(
+                    listOfNotNull(current?.duration?.takeIf { it > 0 }?.let { "${(it / 60).toInt()} мин" }, activeQuality?.let { "${it}p" }).joinToString(" • "),
+                    color = Brand.Secondary, fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp),
+                )
+                Row(Modifier.fillMaxWidth().padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val hasPrev = index > 0
+                    val hasNext = index in 0 until episodes.size - 1
+                    Row(
+                        Modifier.weight(1f).alpha(if (hasPrev) 1f else 0.5f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                            .clickable(enabled = hasPrev) { switchEpisode(episodes.getOrNull(index - 1)?.id) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.SkipPrevious, null, tint = Brand.Primary)
+                        Text("  Назад", color = Brand.Primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Row(
+                        Modifier.weight(1f).alpha(if (hasNext) 1f else 0.5f).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+                            .clickable(enabled = hasNext) { switchEpisode(episodes.getOrNull(index + 1)?.id) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Далее  ", color = Brand.Primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Icon(Icons.Filled.SkipNext, null, tint = Brand.Primary)
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Список серий", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = { reversed = !reversed }) { Icon(Icons.Filled.SwapVert, "Порядок", tint = Brand.Secondary) }
+                }
+            }
+            val shown = if (reversed) episodes.reversed() else episodes
+            items(shown.size) { i ->
+                val e = shown[i]
+                val cur = e.id == episodeId
+                Row(
+                    Modifier.padding(vertical = 7.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .clickable { switchEpisode(e.id) }.padding(horizontal = 12.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AsyncImage(api.img(e.preview.best()), null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(e.title(), maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp, color = if (cur) Brand.Primary else MaterialTheme.colorScheme.onSurface)
+                        e.duration?.takeIf { it > 0 }?.let { Text("${(it / 60).toInt()} мин", fontSize = 14.sp, color = Brand.Secondary) }
+                    }
+                    Box(Modifier.size(48.dp).border(2.dp, Brand.Primary, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = Brand.Primary, modifier = Modifier.size(26.dp))
+                    }
                 }
             }
         }

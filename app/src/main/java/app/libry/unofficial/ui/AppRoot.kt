@@ -1,5 +1,15 @@
 package app.libry.unofficial.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -83,7 +93,11 @@ fun AppRoot() {
     val route = entry?.destination?.route
     val showBar = TABS.any { it.route == route }
 
+    var splash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { delay(1300); splash = false }
+
     CompositionLocalProvider(LocalNav provides nav) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = MaterialTheme.colorScheme.background,
@@ -181,6 +195,17 @@ fun AppRoot() {
                 composable("history") { HistoryScreen() }
                 composable("otp_accept") { OtpAcceptScreen() }
             }
+        }
+        androidx.compose.animation.AnimatedVisibility(
+            visible = splash, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
+        ) {
+            Box(Modifier.fillMaxSize().background(Brand.Splash), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(94.dp))
+                    Text("LIBRY", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black, fontFamily = LibryFonts.lilita)
+                }
+            }
+        }
         }
     }
 }
